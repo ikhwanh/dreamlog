@@ -59,18 +59,12 @@ class Recorder {
         this.mediaRecorder = null
         this.stream = null
 
-        this.triggerVolume = this.volumeInp.value || 30
-
-        this.recordBtn.addEventListener('click', () => {
-            this.activate()
-        })
+        this.triggerVolume = this.volumeInp.value || this.DEFAULT_VOL
     }
 
     async activate() {
         if (!this.stream) {
             await this._init()
-        } else {
-            this.volumeMeterNode.port.start()
         }
 
         this.statusEl.innerText = 'active'
@@ -79,13 +73,15 @@ class Recorder {
     }
 
     async deactivate() {
-        this.volumeMeterNode.port.close()
         this.statusEl.innerText = 'inactive'
         this.recordBtn.innerText = 'Sleep now'
         this.activated = false
     }
 
     async _init() {
+        // prevent phone to sleep
+        await navigator.wakeLock.request('screen')
+
         this.audioCtx = new AudioContext()
         this.stream = await navigator.mediaDevices.getUserMedia({ audio: true })
         this.micNode = this.audioCtx.createMediaStreamSource(this.stream)
@@ -141,11 +137,12 @@ window.onload = () => {
     const recordTemplate = document.getElementById('record')
 
     const recorder = new Recorder({ recordBtn, volumeInp, statusEl, recordTemplate })
-    recordBtn.addEventListener('click', async () => {
+
+    recordBtn.addEventListener('click', (e) => {
         if (recorder.activated) {
-            await recorder.deactivate()
+            recorder.deactivate()
         } else {
-            await recorder.activate()
+            recorder.activate()
         }
     })
 }
